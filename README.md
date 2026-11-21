@@ -13,8 +13,11 @@ change the time of day and weather, and keep a whole collection of universes sav
 ## Features
 
 - Six biomes: Enchanted Forest, Floating Islands, Ocean Paradise, Dreamy Snowland, Celestial Desert, Candy Dream
-- 22 hand-built, procedural low-poly objects (nature, landscape, structures, magic)
-- Terrain sculpting (raise, lower, smooth) and ground painting with 8 surfaces
+- 34 hand-built, procedural low-poly objects (nature, landscape, structures, magic, friends): five kinds of home (cottage, round hut, manor, mushroom house, treehouse), fairy lights, fairies, glitter, a Babylon-style hanging garden, cute girls and boys, doggies and garden gnomes
+- Terrain sculpting (raise, lower, smooth, dig rivers) and ground painting with 8 surfaces; an eraser brush
+- Start with trees and houses or a flat, empty field (or clear any world from Settings)
+- Resize anything from 30% to 300% (− / + buttons or keys), including before you place it
+- A gentle generated lullaby (music button or M)
 - Select, move, rotate, scale, duplicate and delete; undo/redo; keyboard shortcuts
 - Morning, afternoon, sunset and night with smooth light transitions; rain and snow
 - Living worlds: swaying grass and trees, drifting clouds, water, fireflies, butterflies, birds, lanterns
@@ -54,4 +57,4 @@ variant), created/updated timestamps, schema version and a thumbnail.
 ## Shortcuts (builder)
 
 Ctrl/⌘ Z undo · Ctrl/⌘ Shift Z or Ctrl Y redo · Delete remove · R rotate (Shift+R other way) ·
-Ctrl/⌘ D duplicate · Ctrl/⌘ S save now · C cinematic view · Esc stop placing / deselect / leave cinematic
+Ctrl/⌘ D duplicate · − / + smaller / bigger · M music · Ctrl/⌘ S save now · C cinematic view · Esc stop placing / deselect / leave cinematic

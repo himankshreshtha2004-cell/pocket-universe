@@ -36,7 +36,7 @@ function Capture() {
       (window as any).__pocket = {
         store: useStore,
         project: (x: number, y: number, z: number) => { const v = new THREE.Vector3(x, y, z).project(camera); const r = gl.domElement.getBoundingClientRect(); return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; },
-        canPlace, heightAt, capture: (w: number, h: number) => captureRef.fn?.(w, h, "image/jpeg"),
+        camera, canPlace, heightAt, capture: (w: number, h: number) => captureRef.fn?.(w, h, "image/jpeg"),
       };
     }
     return () => { captureRef.fn = null; };
@@ -55,7 +55,7 @@ function WelcomeCam({ z = 6.4, y = 0 }: { z?: number; y?: number }) {
 function PreviewWorld() {
   const draft = useStore((s) => s.draft), step = useStore((s) => s.createStep);
   // terrain depends on biome / size / seed; atmosphere updates live without rebuilding
-  const world = useMemo(() => buildWorld({ ...draft, name: draft.name || "preview" }), [draft.biome, draft.size, draft.seed]);
+  const world = useMemo(() => buildWorld({ ...draft, name: draft.name || "preview" }), [draft.biome, draft.size, draft.seed, draft.blank]);
   const R = world.terrain.radius;
   const wide = typeof window !== "undefined" && window.innerWidth > 900;
   return (

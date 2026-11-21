@@ -433,6 +433,426 @@ function Portal({ pal }: { pal: Palette }) {
   );
 }
 
+
+/* ------------------------------------------------------------------ more homes */
+function RoundHut({ pal, r, biome }: { pal: Palette; r: () => number; biome: Biome["id"] }) {
+  const thatch = biome === "snow" ? "#f7f9ff" : biome === "candy" ? "#f2b2d6" : pick(["#d9b26a", "#c99a55", "#e0bf7a"], r);
+  const wall = pick([pal.wall, "#f1dcc0", "#e8cfa6"], r);
+  return (
+    <group>
+      <M g={G.cyl12} m={std(pal.surface.stone)} p={[0, 0.03, 0]} s={[0.6, 0.06, 0.6]} />
+      <M g={G.cyl12} m={std(wall)} p={[0, 0.33, 0]} s={[0.47, 0.56, 0.47]} />
+      <M g={G.cone7} m={std(thatch)} p={[0, 0.88, 0]} s={[0.66, 0.56, 0.66]} />
+      <M g={G.cone7} m={std(thatch)} p={[0, 1.2, 0]} s={[0.08, 0.14, 0.08]} />
+      <M g={G.box} m={std(pal.wood)} p={[0, 0.22, 0.465]} s={[0.18, 0.34, 0.03]} />
+      <M g={G.sphere} m={std("#ffd58a")} p={[0.05, 0.22, 0.485]} s={0.016} shadow={false} />
+      <Window p={[0.34, 0.42, 0.33]} ry={Math.PI / 4} />
+      <Window p={[-0.34, 0.42, 0.33]} ry={-Math.PI / 4} />
+      <Window p={[0, 0.42, -0.47]} ry={Math.PI} />
+      <M g={G.blob} m={std(pal.foliage[0])} p={[0.42, 0.1, 0.34]} s={0.13} />
+      <M g={G.blob} m={std(pick(pal.flowers, r))} p={[0.42, 0.2, 0.37]} s={0.045} shadow={false} />
+      <M g={G.blob} m={std(pal.foliage[1 % pal.foliage.length])} p={[-0.44, 0.09, 0.3]} s={0.11} />
+    </group>
+  );
+}
+function Manor({ pal, r, biome }: { pal: Palette; r: () => number; biome: Biome["id"] }) {
+  const roof = biome === "snow" ? "#f7f9ff" : pick([pal.roof, "#6a7fb0", "#b0606a"], r);
+  const wall = pick([pal.wall, "#f6e7d4", "#f2d5d0"], r);
+  return (
+    <group>
+      <M g={G.box} m={std(pal.surface.stone)} p={[0, 0.04, 0]} s={[1.5, 0.08, 1.0]} />
+      <M g={G.box} m={std(wall)} p={[0, 0.355, 0]} s={[1.36, 0.55, 0.86]} />
+      <M g={G.box} m={std(pal.wood)} p={[0, 0.645, 0]} s={[1.42, 0.05, 0.92]} />
+      <M g={G.box} m={std(wall)} p={[0, 0.92, 0]} s={[1.36, 0.5, 0.86]} />
+      <M g={G.prism} m={std(roof)} p={[0, 1.37, 0]} s={[1.5, 0.42, 0.58]} />
+      <M g={G.box} m={std(pal.rock[0])} p={[0.42, 1.5, -0.14]} s={[0.13, 0.36, 0.13]} />
+      <M g={G.box} m={std(pal.rock[0])} p={[-0.42, 1.5, -0.14]} s={[0.13, 0.36, 0.13]} />
+      <M g={G.box} m={std(pal.wood)} p={[0, 0.28, 0.435]} s={[0.28, 0.4, 0.02]} />
+      <M g={G.prism} m={std(roof)} p={[0, 0.55, 0.5]} s={[0.42, 0.12, 0.14]} />
+      <M g={G.box} m={std(pal.surface.stone)} p={[0, 0.06, 0.55]} s={[0.4, 0.06, 0.18]} />
+      {[-0.42, 0.42].map((x) => <Window key={"g" + x} p={[x, 0.4, 0.435]} w={0.16} h={0.18} />)}
+      {[-0.42, 0, 0.42].map((x) => <Window key={"u" + x} p={[x, 0.93, 0.435]} w={0.14} h={0.17} />)}
+      {[-0.2, 0.2].map((z) => <Window key={"s" + z} p={[0.685, 0.93, z]} ry={Math.PI / 2} />)}
+      {[-0.2, 0.2].map((z) => <Window key={"t" + z} p={[-0.685, 0.4, z]} ry={Math.PI / 2} />)}
+      <M g={G.blob} m={std(pal.foliage[0])} p={[-0.62, 0.12, 0.5]} s={0.15} />
+      <M g={G.blob} m={std(pal.foliage[0])} p={[0.62, 0.12, 0.5]} s={0.15} />
+      <M g={G.blob} m={std(pick(pal.flowers, r))} p={[0.6, 0.24, 0.53]} s={0.05} shadow={false} />
+      <M g={G.blob} m={std(pick(pal.flowers, r))} p={[-0.6, 0.24, 0.53]} s={0.05} shadow={false} />
+    </group>
+  );
+}
+function MushHouse({ pal, r }: { pal: Palette; r: () => number }) {
+  const cap = pick(["#e0566a", "#e57aa8", "#9b7fe0", "#f28f5c"], r);
+  const dots = useMemo(() => Array.from({ length: 11 }, (_, i) => {
+    const th = i * 2.39 + 0.4, ph = 0.35 + (i % 4) * 0.3;
+    return [Math.sin(ph) * Math.cos(th) * 0.62, 0.55 + Math.cos(ph) * 0.5, Math.sin(ph) * Math.sin(th) * 0.62] as V3;
+  }), []);
+  return (
+    <group>
+      <M g={G.cyl12} m={std("#f4ead8")} p={[0, 0.3, 0]} s={[0.32, 0.6, 0.32]} />
+      <M g={G.cap} m={soft(cap)} p={[0, 0.55, 0]} s={[0.66, 0.52, 0.66]} />
+      <mesh geometry={G.disc} material={std("#f3dcc8")} position={[0, 0.55, 0]} rotation={[Math.PI / 2, 0, 0]} scale={0.66} />
+      {dots.map((d, i) => <M key={i} g={G.ball} m={soft("#fff7ea")} p={d} s={0.055} shadow={false} />)}
+      <M g={G.box} m={std(pal.wood)} p={[0, 0.15, 0.31]} s={[0.15, 0.26, 0.03]} />
+      <M g={G.sphere} m={std("#ffd58a")} p={[0.04, 0.15, 0.33]} s={0.014} shadow={false} />
+      <Window p={[0.2, 0.36, 0.24]} w={0.09} h={0.09} ry={0.7} />
+      <Window p={[-0.22, 0.32, 0.22]} w={0.08} h={0.08} ry={-0.78} />
+      <group position={[0.2, 0.18, 0.36]}>
+        <M g={G.ball} m={glow("#ffd58a", "magic", 0.8, true)} s={0.035} shadow={false} />
+        <Halo color="#ffc77a" kind="magic" size={0.5} base={0.6} />
+      </group>
+      <M g={G.cyl6} m={std(pal.wood)} p={[0.2, 0.09, 0.36]} s={[0.01, 0.18, 0.01]} />
+    </group>
+  );
+}
+function TreeHouse({ pal, r }: { pal: Palette; r: () => number }) {
+  const c1 = pick(pal.foliage, r), c2 = pick(pal.foliage, r);
+  return (
+    <group>
+      <M g={G.trunk} m={std(pal.trunk)} p={[0, 0.6, 0]} s={[0.17, 1.2, 0.17]} />
+      <Sway amt={0.02} seed={r() * 10}>
+        <M g={G.puff} m={soft(c1)} p={[-0.18, 1.78, -0.22]} s={0.48} />
+        <M g={G.puff} m={soft(c2)} p={[0.28, 1.68, -0.24]} s={0.36} />
+        <M g={G.puff} m={soft(c1)} p={[0.02, 2.02, -0.02]} s={0.38} />
+      </Sway>
+      <M g={G.box} m={std(pal.wood)} p={[0, 0.92, 0]} s={[0.92, 0.06, 0.92]} />
+      {[[-0.42, -0.42], [0.42, -0.42], [-0.42, 0.42], [0.42, 0.42]].map(([x, z], i) => (
+        <M key={i} g={G.box} m={std(pal.wood)} p={[x, 1.03, z]} s={[0.04, 0.16, 0.04]} />
+      ))}
+      <M g={G.box} m={std(pal.wood)} p={[0, 1.1, 0.42]} s={[0.88, 0.03, 0.03]} />
+      <M g={G.box} m={std(pal.wall)} p={[0, 1.16, -0.08]} s={[0.54, 0.42, 0.46]} />
+      <M g={G.prism} m={std(pal.roof)} p={[0, 1.48, -0.08]} s={[0.66, 0.24, 0.32]} />
+      <M g={G.box} m={std(pal.wood)} p={[-0.1, 1.08, 0.155]} s={[0.13, 0.24, 0.02]} />
+      <Window p={[0.14, 1.2, 0.155]} w={0.1} h={0.1} />
+      {/* ladder */}
+      <group position={[0.22, 0, 0.6]} rotation={[-0.22, 0, 0]}>
+        <M g={G.cyl6} m={std(pal.wood)} p={[-0.08, 0.47, 0]} s={[0.015, 0.96, 0.015]} />
+        <M g={G.cyl6} m={std(pal.wood)} p={[0.08, 0.47, 0]} s={[0.015, 0.96, 0.015]} />
+        {[0.15, 0.33, 0.51, 0.69, 0.87].map((y) => <M key={y} g={G.box} m={std(pal.wood)} p={[0, y, 0]} s={[0.17, 0.02, 0.025]} />)}
+      </group>
+    </group>
+  );
+}
+
+/* ------------------------------------------------------------------ more magic */
+function FairyLights({ pal, r }: { pal: Palette; r: () => number }) {
+  const posts: V3[] = [[-0.8, 0, 0.12], [0, 0, -0.12], [0.8, 0, 0.12]];
+  const H = 0.72;
+  const colors = useMemo(() => {
+    const sets = [["#fff3c4", "#ffd58a", "#fff3c4"], ["#f2b2d6", "#87dccf", "#ffd58a", "#a9c9f5", "#c7b2f2"], ["#ffd58a", "#f6a98a", "#f2b2d6"]];
+    return pick(sets, r);
+  }, [r]);
+  const { tube, bulbs } = useMemo(() => {
+    const pts: THREE.Vector3[] = [], bulbs: V3[] = [];
+    for (let s = 0; s < posts.length - 1; s++) {
+      const a = posts[s], b = posts[s + 1];
+      for (let k = 0; k <= 10; k++) {
+        const t = k / 10, x = a[0] + (b[0] - a[0]) * t, z = a[2] + (b[2] - a[2]) * t, y = H - Math.sin(Math.PI * t) * 0.2;
+        if (!(s > 0 && k === 0)) pts.push(new THREE.Vector3(x, y, z));
+        if (k > 0 && k < 10 && k % 1 === 0) bulbs.push([x, y - 0.035, z]);
+      }
+    }
+    return { tube: new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 60, 0.006, 4, false), bulbs };
+  }, []);
+  return (
+    <group>
+      {posts.map((p, i) => (
+        <group key={i} position={p}>
+          <M g={G.cyl6} m={std(pal.wood)} p={[0, H / 2, 0]} s={[0.025, H + 0.04, 0.025]} />
+          <M g={G.sphere} m={std(pal.wood)} p={[0, H + 0.03, 0]} s={0.035} />
+        </group>
+      ))}
+      <mesh geometry={tube} material={std("#3b3550")} />
+      {bulbs.map((b, i) => {
+        const c = colors[i % colors.length];
+        return (
+          <group key={i} position={b}>
+            <M g={G.ball} m={glow(c, "magic", 1.2, true)} s={[0.026, 0.034, 0.026]} shadow={false} />
+            <Halo color={c} kind="magic" size={0.28} base={0.9} />
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+const wingMat = new THREE.MeshBasicMaterial({ color: "#dff4ff", transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending });
+function Fairy({ r }: { r: () => number }) {
+  const dress = pick(["#f2b2d6", "#c7b2f2", "#87dccf", "#ffd58a", "#a9c9f5"], r), hair = pick(["#ffd58a", "#f6a98a", "#3b2a24", "#c7b2f2"], r);
+  const orbit = useRef<THREE.Group>(null), wl = useRef<THREE.Group>(null), wr = useRef<THREE.Group>(null);
+  const seed = useMemo(() => r() * 10, [r]);
+  useFrame(() => {
+    if (FX.reduced) return;
+    const t = FX.time;
+    if (orbit.current) { orbit.current.rotation.y = t * 0.5 + seed; }
+    const f = Math.sin(t * 18 + seed) * 0.55;
+    if (wl.current) wl.current.rotation.y = 0.35 + f;
+    if (wr.current) wr.current.rotation.y = -0.35 - f;
+  });
+  return (
+    <Bob amt={0.1} speed={1.4} seed={seed}>
+      <group ref={orbit}>
+        <group position={[0.18, 0, 0]} rotation={[0, 0, 0]}>
+          <M g={G.cone7} m={soft(dress)} p={[0, -0.02, 0]} s={[0.07, 0.15, 0.07]} />
+          <M g={G.ball} m={soft("#f6d2b8")} p={[0, 0.1, 0]} s={0.055} />
+          <M g={G.cap} m={soft(hair)} p={[0, 0.11, -0.005]} s={[0.06, 0.055, 0.06]} />
+          <M g={G.ball} m={soft(hair)} p={[0, 0.07, -0.03]} s={[0.05, 0.06, 0.035]} />
+          <M g={G.sphere} m={std("#2a2238")} p={[0.022, 0.105, 0.048]} s={0.008} shadow={false} />
+          <M g={G.sphere} m={std("#2a2238")} p={[-0.022, 0.105, 0.048]} s={0.008} shadow={false} />
+          <M g={G.octa} m={glow("#fff3c4", "magic", 1)} p={[0, 0.17, 0]} s={0.018} shadow={false} />
+          <group ref={wl} position={[0, 0.03, -0.03]}>
+            <mesh geometry={G.ball} material={wingMat} position={[-0.07, 0.04, -0.02]} scale={[0.075, 0.1, 0.008]} rotation={[0, 0, 0.5]} />
+            <mesh geometry={G.ball} material={wingMat} position={[-0.055, -0.04, -0.02]} scale={[0.05, 0.06, 0.008]} rotation={[0, 0, -0.5]} />
+          </group>
+          <group ref={wr} position={[0, 0.03, -0.03]}>
+            <mesh geometry={G.ball} material={wingMat} position={[0.07, 0.04, -0.02]} scale={[0.075, 0.1, 0.008]} rotation={[0, 0, -0.5]} />
+            <mesh geometry={G.ball} material={wingMat} position={[0.055, -0.04, -0.02]} scale={[0.05, 0.06, 0.008]} rotation={[0, 0, 0.5]} />
+          </group>
+          <Halo color={dress} kind="magic" size={0.7} base={0.7} />
+        </group>
+      </group>
+      <Sparkles count={14} radius={0.35} y={0} color="#fff3c4" />
+    </Bob>
+  );
+}
+const GLITTER = ["#f2b2d6", "#87dccf", "#ffd58a", "#a9c9f5", "#c7b2f2", "#ffffff", "#f6a98a"];
+function Glitter({ r }: { r: () => number }) {
+  const ref = useRef<THREE.Points>(null);
+  const count = 80;
+  const { geo, base, phase } = useMemo(() => {
+    const g = new THREE.BufferGeometry(), a = new Float32Array(count * 3), col = new Float32Array(count * 3), base = new Float32Array(count * 3), phase = new Float32Array(count * 2);
+    const c = new THREE.Color();
+    for (let i = 0; i < count; i++) {
+      const t = r() * Math.PI * 2, u = r() * 2 - 1, d = Math.cbrt(r()) * 0.5, s = Math.sqrt(1 - u * u);
+      a[i * 3] = Math.cos(t) * s * d; a[i * 3 + 1] = u * d * 0.8; a[i * 3 + 2] = Math.sin(t) * s * d;
+      c.set(GLITTER[i % GLITTER.length]); base[i * 3] = c.r; base[i * 3 + 1] = c.g; base[i * 3 + 2] = c.b;
+      phase[i * 2] = r() * Math.PI * 2; phase[i * 2 + 1] = 2 + r() * 5;
+    }
+    col.set(base);
+    g.setAttribute("position", new THREE.BufferAttribute(a, 3)); g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    return { geo: g, base, phase };
+  }, [r]);
+  const mat = useMemo(() => new THREE.PointsMaterial({ map: glowTexture(), vertexColors: true, size: 0.1, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }), []);
+  useFrame((_, dt) => {
+    if (!ref.current || FX.reduced) return;
+    ref.current.rotation.y += dt * 0.25;
+    const col = geo.attributes.color.array as Float32Array, t = FX.time;
+    for (let i = 0; i < count; i++) {
+      const k = 0.25 + 0.75 * Math.max(0, Math.sin(t * phase[i * 2 + 1] + phase[i * 2]));
+      col[i * 3] = base[i * 3] * k; col[i * 3 + 1] = base[i * 3 + 1] * k; col[i * 3 + 2] = base[i * 3 + 2] * k;
+    }
+    geo.attributes.color.needsUpdate = true;
+  });
+  return (
+    <group>
+      <points ref={ref} geometry={geo} material={mat} />
+      <Spin speed={0.8}>
+        {[0, 1, 2, 3].map((i) => <M key={i} g={G.octa} m={glow(GLITTER[i * 2], "magic", 1)} p={[Math.cos(i * 1.57) * 0.22, Math.sin(i * 2.1) * 0.12, Math.sin(i * 1.57) * 0.22]} s={0.035} shadow={false} />)}
+      </Spin>
+      <Halo color="#fff7ea" kind="magic" size={1.2} base={0.5} />
+    </group>
+  );
+}
+function HangingGarden({ pal, r }: { pal: Palette; r: () => number }) {
+  const stone = pick(["#e3c99a", "#d9b98a", pal.surface.stone], r);
+  const tiers = [{ w: 1.3, y: 0 }, { w: 0.95, y: 0.3 }, { w: 0.62, y: 0.6 }];
+  const TH = 0.3;
+  const { bushes, vines } = useMemo(() => {
+    const bushes: { p: V3; s: number; c: string }[] = [], vines: { p: V3; len: number; c: string; f: string }[] = [];
+    tiers.forEach((t, ti) => {
+      const h = t.w / 2, top = t.y + TH, per = ti === 0 ? 3 : 2;
+      for (let side = 0; side < 4; side++) {
+        for (let k = 0; k < per + 1; k++) {
+          const u = -h + 0.08 + ((2 * h - 0.16) * k) / per;
+          const [x, z] = side === 0 ? [u, h - 0.06] : side === 1 ? [h - 0.06, -u] : side === 2 ? [-u, -h + 0.06] : [-h + 0.06, u];
+          bushes.push({ p: [x, top + 0.03, z], s: 0.09 + r() * 0.04, c: pick(pal.foliage, r) });
+        }
+        for (let k = 0; k < per; k++) {
+          const u = -h + ((2 * h) * (k + 0.5)) / per + (r() - 0.5) * 0.08;
+          const o = h + 0.012;
+          const [x, z] = side === 0 ? [u, o] : side === 1 ? [o, -u] : side === 2 ? [-u, -o] : [-o, u];
+          vines.push({ p: [x, top, z], len: 0.16 + r() * 0.16 + (ti === 0 ? 0.02 : 0), c: pick(pal.foliage, r), f: pick(pal.flowers, r) });
+        }
+      }
+    });
+    return { bushes, vines };
+  }, [r]);
+  const strands = useMemo(() => Array.from({ length: 12 }, (_, i) => {
+    const a = (i / 12) * Math.PI * 2 + r() * 0.2, d = 0.34 + r() * 0.08;
+    return { p: [Math.cos(a) * d, 1.58, Math.sin(a) * d] as V3, len: 0.42 + r() * 0.2, f: pick(pal.flowers, r) };
+  }), [r]);
+  const leaf = pick(pal.foliage, r);
+  return (
+    <group>
+      {tiers.map((t, i) => (
+        <group key={i}>
+          <M g={G.box} m={std(stone)} p={[0, t.y + TH / 2, 0]} s={[t.w, TH, t.w]} />
+          <M g={G.box} m={std(pal.surface.soil)} p={[0, t.y + TH + 0.005, 0]} s={[t.w - 0.06, 0.02, t.w - 0.06]} />
+        </group>
+      ))}
+      {bushes.map((b, i) => <M key={i} g={G.puff} m={soft(b.c)} p={b.p} s={b.s} />)}
+      {vines.map((v, i) => (
+        <group key={i} position={v.p}>
+          <M g={G.cyl6} m={std(v.c)} p={[0, -v.len / 2, 0]} s={[0.014, v.len, 0.014]} shadow={false} />
+          <M g={G.blob} m={soft(v.c)} p={[0, -v.len * 0.45, 0.01]} s={0.03} shadow={false} />
+          <M g={G.blob} m={soft(v.f)} p={[0, -v.len, 0.005]} s={0.03} shadow={false} />
+        </group>
+      ))}
+      {/* weeping tree on the top terrace */}
+      <M g={G.trunk} m={std(pal.trunk)} p={[0, 1.18, 0]} s={[0.07, 0.6, 0.07]} />
+      <Sway amt={0.03} seed={r() * 10}>
+        <M g={G.puff} m={soft(leaf)} p={[0, 1.62, 0]} s={[0.46, 0.26, 0.46]} />
+        <M g={G.puff} m={soft(pick(pal.foliage, r))} p={[0.1, 1.8, 0.05]} s={0.24} />
+        {strands.map((s, i) => (
+          <group key={i} position={s.p}>
+            <M g={G.cyl6} m={std(leaf)} p={[0, -s.len / 2, 0]} s={[0.016, s.len, 0.016]} shadow={false} />
+            <M g={G.blob} m={soft(s.f)} p={[0, -s.len * 0.5, 0]} s={0.028} shadow={false} />
+            <M g={G.blob} m={soft(s.f)} p={[0, -s.len, 0]} s={0.034} shadow={false} />
+          </group>
+        ))}
+      </Sway>
+    </group>
+  );
+}
+
+/* ------------------------------------------------------------------ friends */
+const SKIN = ["#f6d2b8", "#eec0a0", "#d9a07a", "#b77a55", "#8d5a3f"];
+const HAIR = ["#3b2a24", "#5a3a2c", "#d8a25a", "#1f1a2e", "#b4553a", "#7a5236"];
+const CLOTHES = ["#f2b2d6", "#87dccf", "#a9c9f5", "#ffd58a", "#c7b2f2", "#f6a98a", "#9fd39a"];
+function Face({ y, z }: { y: number; z: number }) {
+  return (
+    <group>
+      <M g={G.sphere} m={std("#2a2238")} p={[0.04, y, z]} s={[0.016, 0.02, 0.012]} shadow={false} />
+      <M g={G.sphere} m={std("#2a2238")} p={[-0.04, y, z]} s={[0.016, 0.02, 0.012]} shadow={false} />
+      <M g={G.sphere} m={std("#ffffff")} p={[0.044, y + 0.007, z + 0.008]} s={0.005} shadow={false} />
+      <M g={G.sphere} m={std("#ffffff")} p={[-0.036, y + 0.007, z + 0.008]} s={0.005} shadow={false} />
+      <M g={G.sphere} m={soft("#f59ab0")} p={[0.068, y - 0.03, z - 0.012]} s={[0.022, 0.014, 0.008]} shadow={false} />
+      <M g={G.sphere} m={soft("#f59ab0")} p={[-0.068, y - 0.03, z - 0.012]} s={[0.022, 0.014, 0.008]} shadow={false} />
+      <M g={G.torus} m={std("#a0485a")} p={[0, y - 0.036, z - 0.004]} s={[0.014, 0.012, 0.012]} r={[0, 0, Math.PI]} shadow={false} />
+    </group>
+  );
+}
+function Breathe({ children, seed }: { children: React.ReactNode; seed: number }) {
+  const ref = useRef<THREE.Group>(null);
+  useFrame(() => {
+    if (!ref.current || FX.reduced) return;
+    const t = FX.time * 2.2 + seed;
+    ref.current.scale.y = 1 + Math.sin(t) * 0.018;
+    ref.current.rotation.z = Math.sin(t * 0.5) * 0.04;
+  });
+  return <group ref={ref}>{children}</group>;
+}
+function Person({ r, female }: { r: () => number; female: boolean }) {
+  const skin = pick(SKIN, r), hair = pick(HAIR, r), top = pick(CLOTHES, r), bottom = female ? top : pick(["#4a5a8a", "#5a4a6a", "#6b5a4a", "#3e6a7a"], r);
+  const seed = useMemo(() => r() * 10, [r]);
+  const HY = female ? 0.47 : 0.48;
+  return (
+    <Breathe seed={seed}>
+      {/* legs + shoes */}
+      {[-0.04, 0.04].map((x) => (
+        <group key={x}>
+          <M g={G.cyl8} m={std(female ? skin : bottom)} p={[x, 0.08, 0]} s={[0.026, 0.14, 0.026]} />
+          <M g={G.ball} m={std(pick(["#5a3a2c", "#f2b2d6", "#3b3550"], r))} p={[x, 0.015, 0.012]} s={[0.032, 0.022, 0.045]} />
+        </group>
+      ))}
+      {female ? (
+        <M g={G.cone7} m={soft(top)} p={[0, 0.24, 0]} s={[0.13, 0.24, 0.13]} />
+      ) : (
+        <>
+          <M g={G.cyl8} m={std(bottom)} p={[0, 0.17, 0]} s={[0.075, 0.06, 0.06]} />
+          <M g={G.cyl8} m={soft(top)} p={[0, 0.26, 0]} s={[0.085, 0.15, 0.07]} />
+        </>
+      )}
+      {/* arms */}
+      {[1, -1].map((sd) => (
+        <group key={sd} position={[sd * (female ? 0.065 : 0.09), 0.32, 0]} rotation={[0, 0, sd * 0.35]}>
+          <M g={G.cyl8} m={soft(top)} p={[0, -0.04, 0]} s={[0.022, 0.09, 0.022]} />
+          <M g={G.ball} m={soft(skin)} p={[0, -0.1, 0]} s={0.025} />
+        </group>
+      ))}
+      <M g={G.cyl8} m={soft(skin)} p={[0, 0.355, 0]} s={[0.03, 0.04, 0.03]} />
+      {/* head */}
+      <M g={G.ball} m={soft(skin)} p={[0, HY, 0]} s={0.12} />
+      <M g={G.cap} m={soft(hair)} p={[0, HY + 0.01, -0.012]} s={[0.128, 0.125, 0.128]} r={[-0.25, 0, 0]} />
+      {female ? (
+        <>
+          <M g={G.ball} m={soft(hair)} p={[0, HY - 0.04, -0.05]} s={[0.125, 0.14, 0.085]} />
+          <group position={[0.07, HY + 0.1, 0.02]} rotation={[0, 0, -0.4]}>
+            <M g={G.octa} m={soft(pick(["#f28fb0", "#ffd58a", "#87dccf", "#ffffff"], r))} p={[0.025, 0, 0]} s={[0.03, 0.022, 0.012]} />
+            <M g={G.octa} m={soft("#f28fb0")} p={[-0.025, 0, 0]} s={[0.03, 0.022, 0.012]} />
+          </group>
+        </>
+      ) : (
+        <M g={G.ball} m={soft(hair)} p={[0, HY + 0.07, 0.03]} s={[0.1, 0.045, 0.08]} />
+      )}
+      <Face y={HY - 0.005} z={0.112} />
+    </Breathe>
+  );
+}
+function Dog({ r }: { r: () => number }) {
+  const coat = pick(["#e0a85a", "#8a5a3c", "#f4efe6", "#3a3340", "#d9c2a0"], r);
+  const ear = coat === "#f4efe6" ? "#c9a27a" : coat === "#3a3340" ? "#2a2430" : new THREE.Color(coat).multiplyScalar(0.78).getStyle();
+  const tail = useRef<THREE.Group>(null), head = useRef<THREE.Group>(null);
+  const seed = useMemo(() => r() * 10, [r]);
+  useFrame(() => {
+    if (FX.reduced) return;
+    const t = FX.time;
+    if (tail.current) tail.current.rotation.y = Math.sin(t * 12 + seed) * 0.6;
+    if (head.current) head.current.rotation.z = Math.sin(t * 0.9 + seed) * 0.12;
+  });
+  return (
+    <group>
+      {[[-0.05, 0.08], [0.05, 0.08], [-0.05, -0.08], [0.05, -0.08]].map(([x, z], i) => (
+        <group key={i}>
+          <M g={G.cyl8} m={soft(coat)} p={[x, 0.05, z]} s={[0.024, 0.1, 0.024]} />
+          <M g={G.ball} m={soft(i < 2 && coat !== "#f4efe6" ? "#f4efe6" : coat)} p={[x, 0.012, z + 0.008]} s={[0.026, 0.016, 0.03]} />
+        </group>
+      ))}
+      <M g={G.ball} m={soft(coat)} p={[0, 0.14, 0]} s={[0.085, 0.075, 0.13]} />
+      {coat === "#f4efe6" && <M g={G.ball} m={soft("#c9a27a")} p={[0.04, 0.18, -0.03]} s={[0.05, 0.04, 0.05]} />}
+      <group ref={tail} position={[0, 0.17, -0.12]}>
+        <M g={G.cyl8} m={soft(coat)} p={[0, 0.04, -0.03]} s={[0.016, 0.1, 0.016]} r={[-0.7, 0, 0]} />
+      </group>
+      <group ref={head} position={[0, 0.24, 0.12]}>
+        <M g={G.ball} m={soft(coat)} s={0.08} />
+        <M g={G.ball} m={soft(coat === "#3a3340" ? "#4a4250" : "#f4efe6")} p={[0, -0.02, 0.065]} s={[0.042, 0.034, 0.042]} />
+        <M g={G.ball} m={std("#2a2238")} p={[0, -0.005, 0.105]} s={[0.016, 0.012, 0.012]} shadow={false} />
+        <M g={G.sphere} m={std("#2a2238")} p={[0.032, 0.02, 0.07]} s={0.012} shadow={false} />
+        <M g={G.sphere} m={std("#2a2238")} p={[-0.032, 0.02, 0.07]} s={0.012} shadow={false} />
+        <M g={G.sphere} m={std("#ffffff")} p={[0.035, 0.025, 0.08]} s={0.004} shadow={false} />
+        <M g={G.sphere} m={std("#ffffff")} p={[-0.029, 0.025, 0.08]} s={0.004} shadow={false} />
+        <M g={G.ball} m={soft("#f28fa0")} p={[0, -0.045, 0.085]} s={[0.012, 0.006, 0.014]} shadow={false} />
+        <M g={G.ball} m={soft(ear)} p={[0.07, -0.005, -0.005]} s={[0.022, 0.06, 0.04]} r={[0, 0, 0.35]} />
+        <M g={G.ball} m={soft(ear)} p={[-0.07, -0.005, -0.005]} s={[0.022, 0.06, 0.04]} r={[0, 0, -0.35]} />
+      </group>
+    </group>
+  );
+}
+function Gnome({ r }: { r: () => number }) {
+  const hat = pick(["#d94a4a", "#d94a4a", "#4a7ad9", "#9b5fd0"], r), coat = pick(["#3f6fb0", "#4a9a6a", "#b0603f"], r);
+  return (
+    <group rotation={[0, 0, 0]}>
+      <M g={G.ball} m={std("#4a3a2c")} p={[0.035, 0.02, 0.01]} s={[0.032, 0.022, 0.045]} />
+      <M g={G.ball} m={std("#4a3a2c")} p={[-0.035, 0.02, 0.01]} s={[0.032, 0.022, 0.045]} />
+      <M g={G.cyl8} m={soft(coat)} p={[0, 0.12, 0]} s={[0.085, 0.18, 0.08]} />
+      <M g={G.cyl8} m={std("#3b2a24")} p={[0, 0.1, 0]} s={[0.088, 0.025, 0.083]} />
+      <M g={G.box} m={std("#ffd58a")} p={[0, 0.1, 0.082]} s={[0.025, 0.02, 0.006]} />
+      {[1, -1].map((sd) => (
+        <group key={sd} position={[sd * 0.09, 0.19, 0]} rotation={[0, 0, sd * 0.5]}>
+          <M g={G.cyl8} m={soft(coat)} p={[0, -0.03, 0]} s={[0.022, 0.07, 0.022]} />
+          <M g={G.ball} m={soft("#f6d2b8")} p={[0, -0.075, 0]} s={0.022} />
+        </group>
+      ))}
+      <M g={G.ball} m={soft("#f6d2b8")} p={[0, 0.28, 0]} s={0.075} />
+      <M g={G.puff} m={soft("#f7f4ee")} p={[0, 0.23, 0.04]} s={[0.075, 0.085, 0.05]} />
+      <M g={G.ball} m={soft("#f2a08a")} p={[0, 0.27, 0.075]} s={0.024} />
+      <M g={G.sphere} m={std("#2a2238")} p={[0.026, 0.3, 0.066]} s={0.009} shadow={false} />
+      <M g={G.sphere} m={std("#2a2238")} p={[-0.026, 0.3, 0.066]} s={0.009} shadow={false} />
+      <M g={G.cyl8} m={soft(hat)} p={[0, 0.32, 0]} s={[0.08, 0.025, 0.08]} />
+      <M g={G.cone7} m={soft(hat)} p={[0.008, 0.43, -0.01]} s={[0.078, 0.22, 0.078]} r={[-0.12, 0, -0.08]} />
+    </group>
+  );
+}
+
 /* ------------------------------------------------------------------ dispatcher */
 export function Model({ kind, biome, v, ghost }: { kind: ObjectKind; biome: Biome; v: number; ghost?: "ok" | "bad" }) {
   const pal = biome.palette;
@@ -462,6 +882,18 @@ export function Model({ kind, biome, v, ghost }: { kind: ObjectKind; biome: Biom
       case "magictree": return <MagicTree pal={pal} r={r} />;
       case "stars": return <StarDust pal={pal} />;
       case "portal": return <Portal pal={pal} />;
+      case "roundhut": return <RoundHut pal={pal} r={r} biome={biome.id} />;
+      case "manor": return <Manor pal={pal} r={r} biome={biome.id} />;
+      case "mushhouse": return <MushHouse pal={pal} r={r} />;
+      case "treehouse": return <TreeHouse pal={pal} r={r} />;
+      case "fairylights": return <FairyLights pal={pal} r={r} />;
+      case "fairy": return <Fairy r={r} />;
+      case "glitter": return <Glitter r={r} />;
+      case "hangingtree": return <HangingGarden pal={pal} r={r} />;
+      case "man": return <Person r={r} female={false} />;
+      case "woman": return <Person r={r} female />;
+      case "dog": return <Dog r={r} />;
+      case "gnome": return <Gnome r={r} />;
     }
   }, [kind, biome, r]);
   useLayoutEffect(() => {

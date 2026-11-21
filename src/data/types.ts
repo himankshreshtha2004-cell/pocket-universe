@@ -14,7 +14,10 @@ export type ObjectKind =
   | "tree" | "pine" | "bush" | "flower" | "rock" | "mushroom" | "grass"
   | "hill" | "pond" | "path" | "patch" | "tile"
   | "cottage" | "cabin" | "tower" | "bridge" | "windmill"
-  | "crystal" | "lantern" | "magictree" | "stars" | "portal";
+  | "roundhut" | "manor" | "mushhouse" | "treehouse"
+  | "crystal" | "lantern" | "magictree" | "stars" | "portal"
+  | "fairylights" | "fairy" | "glitter" | "hangingtree"
+  | "man" | "woman" | "dog" | "gnome";
 
 export interface Env {
   time: TimeOfDay;
@@ -77,4 +80,6 @@ export interface Draft {
   size: WorldSize;
   seed: number;
   env: Env;
+  /** start with a flat, empty field: no trees, rocks or houses */
+  blank?: boolean;
 }

@@ -120,6 +120,13 @@ export function Create() {
                 <label>Ambient light <span className="muted">{Math.round(draft.env.ambient * 100)}%</span></label>
                 <input type="range" min={0.5} max={1.5} step={0.05} value={draft.env.ambient} onChange={(e) => setEnv({ ambient: +e.target.value })} aria-label="Ambient light" />
               </div>
+              <div className="field-group">
+                <label>Start with</label>
+                <div className="seg">
+                  <button className={!draft.blank ? "on" : ""} onClick={() => setDraft({ blank: false })}><Icon n="leaf" s={16} />Trees &amp; houses</button>
+                  <button className={draft.blank ? "on" : ""} onClick={() => setDraft({ blank: true })}><Icon n="field" s={16} />Empty field</button>
+                </div>
+              </div>
               <div className="field-group two">
                 <div>
                   <label>World size</label>

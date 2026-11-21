@@ -53,7 +53,7 @@ export function bandSurface(biome: BiomeId, h: number, water: number): Surface {
   return bands[bands.length - 1].s;
 }
 
-export function generateTerrain(biome: BiomeId, size: WorldSize, seed: number): Terrain {
+export function generateTerrain(biome: BiomeId, size: WorldSize, seed: number, blank = false): Terrain {
   const B = BIOMES[biome], g = B.gen, n = SIZE_N[size];
   const radius = ((n - 1) / 2) * CELL * 0.94;
   const rng = mulberry32(seed * 7 + 3);
@@ -64,6 +64,21 @@ export function generateTerrain(biome: BiomeId, size: WorldSize, seed: number): 
     const a = rng() * Math.PI * 2, r = radius * (0.3 + rng() * 0.25);
     return { x: Math.cos(a) * r, z: Math.sin(a) * r, h: 2.2 + rng() * 0.8, w: radius * 0.32 };
   });
+  if (blank) {
+    // an empty field: flat, gently rounded land a little above the water, all one surface
+    const flat = Math.max(g.water + 0.3, 0.3);
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+      const x = vx(t, i), z = vx(t, j), f = rimFalloff(t, x, z);
+      const h = flat + 0.05 * (fbm(x * 0.2 + 50, z * 0.2 + 50, seed, 2) - 0.5);
+      t.heights[j * n + i] = h * f + 0.02 * (1 - f);
+    }
+    const m = n - 1;
+    for (let j = 0; j < m; j++) for (let i = 0; i < m; i++) {
+      const x = vx(t, i) + t.cell / 2, z = vx(t, j) + t.cell / 2;
+      t.surface[j * m + i] = surfIndex(bandSurface(biome, heightAt(t, x, z), t.water));
+    }
+    return t;
+  }
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
     const x = vx(t, i), z = vx(t, j);
     let h = g.base + g.amp * (fbm(x * g.freq + 50, z * g.freq + 50, seed, 4) - 0.5) * 2;
@@ -112,6 +127,23 @@ export function sculpt(t: Terrain, x: number, z: number, radius: number, mode: B
     if (mode === "raise") out[k] += strength * w;
     else if (mode === "lower") out[k] -= strength * w;
     else out[k] += (avg - out[k]) * Math.min(1, strength * 2.2 * w);
+    out[k] = clamp(out[k], H_MIN, H_MAX);
+  }
+  return out;
+}
+/** dig the ground down below the water line so water fills it: rivers, streams and lakes */
+export function carveRiver(t: Terrain, x: number, z: number, radius: number): number[] {
+  const n = t.n, out = t.heights.slice(), r2 = radius * radius, bed = t.water - 0.32;
+  const i0 = Math.max(0, Math.floor((x - radius) / t.cell + (n - 1) / 2)), i1 = Math.min(n - 1, Math.ceil((x + radius) / t.cell + (n - 1) / 2));
+  const j0 = Math.max(0, Math.floor((z - radius) / t.cell + (n - 1) / 2)), j1 = Math.min(n - 1, Math.ceil((z + radius) / t.cell + (n - 1) / 2));
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const px = vx(t, i), pz = vx(t, j), d2 = (px - x) ** 2 + (pz - z) ** 2;
+    if (d2 > r2) continue;
+    const w = Math.pow(1 - d2 / r2, 0.9);
+    const k = j * n + i;
+    // the middle sinks to the river bed, the edges ease into soft banks
+    const target = bed + (1 - w) * 0.45;
+    if (out[k] > target) out[k] += (target - out[k]) * Math.min(1, 0.55 * w + 0.15);
     out[k] = clamp(out[k], H_MIN, H_MAX);
   }
   return out;

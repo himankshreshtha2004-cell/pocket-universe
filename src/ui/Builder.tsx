@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { BIOMES, SKY_TINTS, TIME_LABEL, TIMES, WEATHER_LABEL } from "../data/biomes";
-import { CATEGORIES, ITEMS, SURFACE_LABEL, TERRAIN_TOOLS, type CategoryId } from "../data/catalog";
+import { CATEGORIES, ITEMS, SIZE, SURFACE_LABEL, TERRAIN_TOOLS, type CategoryId } from "../data/catalog";
 import { SIZE_LABEL } from "../data/terrain";
 import { SURFACES, type ObjectKind, type TimeOfDay } from "../data/types";
+import { music } from "../audio/music";
 import { captureRef, useStore, type Brush } from "../state/store";
 import { Model } from "../three/assets";
 import { thumb } from "../three/Thumbs";
@@ -11,8 +12,8 @@ import { Confirm, downloadDataUrl, exportWorlds, Modal, pickAndImport, slug } fr
 import { Icon } from "./icons";
 
 const TIME_ICON = { morning: "sunrise", afternoon: "sun", sunset: "sunset", night: "moon" } as const;
-type Tab = CategoryId | "terrain";
-const TAB_ICON: Record<Tab, string> = { nature: "leaf", landscape: "mountain", structures: "house", magic: "wand", terrain: "brush" };
+type Tab = CategoryId | "terrain" | "eraser";
+const TAB_ICON: Record<Tab, string> = { nature: "leaf", landscape: "mountain", structures: "house", magic: "wand", friends: "people", terrain: "brush", eraser: "eraser" };
 
 function ItemThumb({ kind }: { kind: ObjectKind }) {
   const biome = useStore((s) => s.current?.biome ?? "forest");
@@ -43,10 +44,18 @@ function Dock() {
                 <span className="item-label">{it.label}</span>
               </button>
             ))}
+            {tab === "eraser" && (
+              <div className="terrain-tray">
+                <p className="tray-note"><Icon n="eraser" s={16} /> Drag over anything to erase it. Undo brings it back.</p>
+                <div className="tt-group brush" role="group" aria-label="Eraser size">
+                  {(["S", "M", "L"] as Brush[]).map((b) => <button key={b} className={brush === b ? "on" : ""} onClick={() => setBrush(b)} aria-label={`Eraser ${b}`}><span style={{ width: b === "S" ? 8 : b === "M" ? 13 : 19, height: b === "S" ? 8 : b === "M" ? 13 : 19 }} /></button>)}
+                </div>
+              </div>
+            )}
             {tab === "terrain" && (
               <div className="terrain-tray">
                 <div className="tt-group">
-                  {TERRAIN_TOOLS.filter((t) => t.id !== "paint").map((t) => (
+                  {TERRAIN_TOOLS.filter((t) => t.id !== "paint" && t.id !== "erase").map((t) => (
                     <button key={t.id} className={"tool" + (mode === "terrain" && tool === t.id ? " on" : "")} onClick={() => setTool(t.id)} title={t.hint} aria-label={t.label} aria-pressed={mode === "terrain" && tool === t.id}><Icon n={t.id} s={18} /><span>{t.label}</span></button>
                   ))}
                 </div>
@@ -68,29 +77,53 @@ function Dock() {
       <nav className="dock" aria-label="Build toolbar">
         <button className={"dock-btn" + (mode === "explore" ? " on" : "")} onClick={() => { setMode("explore"); }} title="Explore and select (Esc)" aria-label="Explore"><Icon n="hand" s={19} /><span>Explore</span></button>
         <span className="dock-sep" />
-        {(["nature", "landscape", "structures", "magic", "terrain"] as Tab[]).map((t) => (
-          <button key={t} className={"dock-btn" + (tab === t ? " open" : "")} onClick={() => { setTab(tab === t ? null : t); if (t === "terrain" && tab !== t) setTool(tool); }} aria-expanded={tab === t} aria-label={t === "terrain" ? "Terrain" : CATEGORIES.find((c) => c.id === t)!.label} title={t === "terrain" ? "Terrain" : CATEGORIES.find((c) => c.id === t)!.label}>
+        {(["nature", "landscape", "structures", "magic", "friends", "terrain"] as Tab[]).map((t) => (
+          <button key={t} className={"dock-btn" + (tab === t ? " open" : "")} onClick={() => { setTab(tab === t ? null : t); if (t === "terrain" && tab !== t) setTool(tool === "erase" ? "raise" : tool); else if (tool === "erase" && mode === "terrain") setMode("explore"); }} aria-expanded={tab === t} aria-label={t === "terrain" ? "Terrain" : CATEGORIES.find((c) => c.id === t)!.label} title={t === "terrain" ? "Terrain" : CATEGORIES.find((c) => c.id === t)!.label}>
             <Icon n={TAB_ICON[t]} s={19} /><span>{t === "terrain" ? "Terrain" : CATEGORIES.find((c) => c.id === t)!.label}</span>
           </button>
         ))}
+        <span className="dock-sep" />
+        <button className={"dock-btn eraser" + (mode === "terrain" && tool === "erase" ? " on" : "")} onClick={() => { if (mode === "terrain" && tool === "erase") { setMode("explore"); setTab(null); } else { setTool("erase"); setTab("eraser"); } }} aria-pressed={mode === "terrain" && tool === "erase"} aria-label="Eraser" title="Eraser"><Icon n="eraser" s={19} /><span>Eraser</span></button>
       </nav>
     </div>
   );
 }
 
+const STEP = 1.2;
+function SizeStepper({ value, onChange, label }: { value: number; onChange: (v: number) => void; label: string }) {
+  return (
+    <div className="size-stepper" role="group" aria-label={label}>
+      <button className="icon-btn glassy small" onClick={() => onChange(value / STEP)} disabled={value <= SIZE[0] + 0.001} aria-label="Make smaller" title="Smaller (−)"><Icon n="minus" s={16} /></button>
+      <span className="sz">{Math.round(value * 100)}%</span>
+      <button className="icon-btn glassy small" onClick={() => onChange(value * STEP)} disabled={value >= SIZE[1] - 0.001} aria-label="Make bigger" title="Bigger (+)"><Icon n="plus" s={16} /></button>
+    </div>
+  );
+}
+function PlaceSize() {
+  const mode = useStore((s) => s.mode), placeKind = useStore((s) => s.placeKind), v = useStore((s) => s.placeScale), set = useStore((s) => s.setPlaceScale);
+  if (mode !== "place" || !placeKind) return null;
+  return (
+    <motion.div className="place-size" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+      <span className="sp-label">Size</span>
+      <SizeStepper value={v} onChange={set} label="Size of the next item" />
+      {Math.abs(v - 1) > 0.01 && <button className="chip-btn" onClick={() => set(1)}>Reset</button>}
+    </motion.div>
+  );
+}
+
 function Hint() {
   const mode = useStore((s) => s.mode), placeKind = useStore((s) => s.placeKind), tool = useStore((s) => s.terrainTool), selected = useStore((s) => s.selectedId);
-  let text = "Drag to look around · scroll to zoom · click anything to select it";
-  if (mode === "place" && placeKind) text = `Click your world to place ${ITEMS[placeKind].label.toLowerCase()} · R rotates · Esc to stop`;
+  let text = "Drag to look around · scroll to zoom · click anything to select, resize or move it";
+  if (mode === "place" && placeKind) text = `Click your world to place ${ITEMS[placeKind].label.toLowerCase()} · − / + changes size · R rotates · Esc to stop`;
   else if (mode === "terrain") text = TERRAIN_TOOLS.find((t) => t.id === tool)!.hint + " · drag off the island to look around";
-  else if (selected) text = "Drag it to move · R rotates · Delete removes · Esc deselects";
+  else if (selected) text = "Drag it to move · − / + resizes · R rotates · Delete removes · Esc deselects";
   return <motion.p key={text} className="hint" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>{text}</motion.p>;
 }
 
 function SelectionPanel() {
   const id = useStore((s) => s.selectedId), world = useStore((s) => s.current);
   const commit = useStore((s) => s.commit), begin = useStore((s) => s.begin), live = useStore((s) => s.live), end = useStore((s) => s.end);
-  const remove = useStore((s) => s.removeSelected), dup = useStore((s) => s.duplicateSelected), select = useStore((s) => s.select);
+  const remove = useStore((s) => s.removeSelected), dup = useStore((s) => s.duplicateSelected), select = useStore((s) => s.select), resize = useStore((s) => s.resizeSelected);
   const o = id && world ? world.objects.find((x) => x.id === id) : null;
   const rot = (d: number) => commit((w) => ({ ...w, objects: w.objects.map((x) => (x.id === id ? { ...x, r: x.r + d } : x)) }));
   return (
@@ -109,9 +142,12 @@ function SelectionPanel() {
               <button className="icon-btn glassy" onClick={() => rot(Math.PI / 8)} aria-label="Rotate right"><Icon n="rotr" s={17} /></button>
             </div>
           </div>
+          <div className="sp-row">
+            <span className="sp-label">Size</span>
+            <SizeStepper value={o.s} onChange={(v) => resize(v / o.s)} label="Size" />
+          </div>
           <div className="sp-row col">
-            <span className="sp-label">Size <span className="muted">{Math.round(o.s * 100)}%</span></span>
-            <input type="range" min={ITEMS[o.kind].scale[0]} max={ITEMS[o.kind].scale[1]} step={0.02} value={o.s} aria-label="Size"
+            <input type="range" min={ITEMS[o.kind].scale[0]} max={ITEMS[o.kind].scale[1]} step={0.02} value={o.s} aria-label="Size slider"
               onPointerDown={begin} onKeyDown={begin} onPointerUp={end} onKeyUp={end} onBlur={end}
               onChange={(e) => { const v = +e.target.value; live((w) => ({ ...w, objects: w.objects.map((x) => (x.id === id ? { ...x, s: v } : x)) })); }} />
           </div>
@@ -130,6 +166,22 @@ function SelectionPanel() {
         </motion.aside>
       )}
     </AnimatePresence>
+  );
+}
+
+function toggleMusic() {
+  const on = !useStore.getState().music;
+  useStore.setState({ music: on });
+  if (on) { music.start(); useStore.getState().discover("first-music", "Music on", "A little lullaby for your world. Press M to toggle it."); }
+  else music.stop();
+}
+function MusicButton() {
+  const on = useStore((s) => s.music);
+  return (
+    <button className={"icon-btn glassy music-btn" + (on ? " on" : "")} onClick={toggleMusic} aria-pressed={on} aria-label={on ? "Turn music off" : "Turn music on"} title={on ? "Music on (M)" : "Music off (M)"}>
+      <Icon n={on ? "music" : "musicoff"} />
+      {on && <span className="eq" aria-hidden="true"><i /><i /><i /></span>}
+    </button>
   );
 }
 
@@ -163,7 +215,7 @@ function TimeMenu() {
 function Settings() {
   const open = useStore((s) => s.settingsOpen), world = useStore((s) => s.current);
   const setEnv = useStore((s) => s.setEnv), rename = useStore((s) => s.renameCurrent), exit = useStore((s) => s.exitWorld), del = useStore((s) => s.deleteWorld);
-  const reduced = useStore((s) => s.reducedMotion), quality = useStore((s) => s.quality), setPrefs = useStore((s) => s.setPrefs), go = useStore((s) => s.go);
+  const reduced = useStore((s) => s.reducedMotion), quality = useStore((s) => s.quality), setPrefs = useStore((s) => s.setPrefs), go = useStore((s) => s.go), clear = useStore((s) => s.clearWorld);
   const [name, setName] = useState(world?.name ?? "");
   const [confirm, setConfirm] = useState(false);
   useEffect(() => { if (open && world) setName(world.name); }, [open]);
@@ -196,6 +248,9 @@ function Settings() {
               <button className="btn glassy" disabled={!name.trim() || name.trim() === world.name}>Rename</button>
             </form>
             <p className="muted small">{B.name} · {SIZE_LABEL[world.size]} · seed {world.seed} · {world.objects.length} things</p>
+            <h4>Start fresh</h4>
+            <button className="btn glassy small" onClick={() => { clear(); close(); }}><Icon n="field" s={15} /> Make it an empty field</button>
+            <p className="muted small">Removes every tree, house and rock and flattens the land, so you can build from scratch. Undo brings it all back.</p>
             <h4>Your data</h4>
             <div className="row gap-s wrap">
               <button className="btn glassy small" onClick={() => exportWorlds([world], slug(world.name) + ".pocket.json")}><Icon n="download" s={15} /> Export world</button>
@@ -277,6 +332,8 @@ export function Builder() {
   const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { if (editing) inputRef.current?.select(); }, [editing]);
+  // music belongs to the open world: it fades out when you leave
+  useEffect(() => () => { music.stop(); useStore.setState({ music: false }); }, []);
 
   // keyboard shortcuts
   useEffect(() => {
@@ -295,6 +352,13 @@ export function Builder() {
         else s.select(null);
         return;
       }
+      if (!mod && (e.key === "-" || e.key === "_" || e.key === "=" || e.key === "+")) {
+        const f = e.key === "-" || e.key === "_" ? 1 / STEP : STEP;
+        if (s.mode === "place") s.setPlaceScale(s.placeScale * f);
+        else if (s.selectedId) s.resizeSelected(f);
+        return;
+      }
+      if (e.key.toLowerCase() === "m" && !mod) { toggleMusic(); return; }
       if ((e.key === "Delete" || e.key === "Backspace") && s.selectedId) { e.preventDefault(); s.removeSelected(); return; }
       if (e.key.toLowerCase() === "r" && !mod) {
         const d = (e.shiftKey ? -1 : 1) * Math.PI / 8;
@@ -333,6 +397,7 @@ export function Builder() {
             <button className="icon-btn glassy" onClick={undo} disabled={!past} aria-label="Undo" title="Undo (Ctrl+Z)"><Icon n="undo" /></button>
             <button className="icon-btn glassy" onClick={redo} disabled={!future} aria-label="Redo" title="Redo (Ctrl+Shift+Z)"><Icon n="redo" /></button>
           </div>
+          <MusicButton />
           <TimeMenu />
           <button className="icon-btn glassy" onClick={() => useStore.setState((s) => ({ resetCam: s.resetCam + 1 }))} aria-label="Reset camera" title="Reset camera"><Icon n="home" /></button>
           <button className="icon-btn glassy" onClick={() => useStore.setState({ settingsOpen: true })} aria-label="World settings" title="World settings"><Icon n="gear" /></button>
@@ -343,6 +408,7 @@ export function Builder() {
       {!cinematic && (
         <motion.div className="hud-bottom" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
           <Hint />
+          <PlaceSize />
           <Dock />
         </motion.div>
       )}

@@ -1,9 +1,9 @@
 import { create } from "zustand";
 import { BIOMES, BIOME_ORDER, randomName, TIMES } from "../data/biomes";
-import { ITEMS, type TerrainTool } from "../data/catalog";
+import { ITEMS, SIZE, type TerrainTool } from "../data/catalog";
 import { isWorld, prefs, storage } from "../data/db";
 import { newSeed, uid } from "../data/rng";
-import { generateStarters, generateTerrain, paint, sculpt } from "../data/terrain";
+import { carveRiver, generateStarters, generateTerrain, paint, sculpt } from "../data/terrain";
 import { SCHEMA_VERSION, type BiomeId, type Draft, type Env, type ObjectKind, type Placed, type Surface, type Terrain, type World } from "../data/types";
 
 export type Screen = "welcome" | "collection" | "create" | "builder";
@@ -20,15 +20,15 @@ export const captureRef: { fn: ((w: number, h: number, type?: string) => string 
 
 export function makeDraft(biome: BiomeId = "forest"): Draft {
   const B = BIOMES[biome];
-  return { biome, name: "", size: "medium", seed: newSeed(), env: { time: B.defaults.time, weather: B.defaults.weather, sky: "", ambient: 1 } };
+  return { biome, name: "", size: "medium", seed: newSeed(), blank: false, env: { time: B.defaults.time, weather: B.defaults.weather, sky: "", ambient: 1 } };
 }
 
 export function buildWorld(d: Draft): World {
-  const terrain = generateTerrain(d.biome, d.size, d.seed);
+  const terrain = generateTerrain(d.biome, d.size, d.seed, !!d.blank);
   const now = Date.now();
   return {
     id: uid(), version: SCHEMA_VERSION, name: d.name.trim() || randomName(), biome: d.biome, seed: d.seed, size: d.size,
-    env: { ...d.env }, terrain, objects: generateStarters(terrain, d.biome, d.size, d.seed), createdAt: now, updatedAt: now,
+    env: { ...d.env }, terrain, objects: d.blank ? [] : generateStarters(terrain, d.biome, d.size, d.seed), createdAt: now, updatedAt: now,
   };
 }
 
@@ -43,6 +43,9 @@ interface State {
   mode: Mode;
   placeKind: ObjectKind | null;
   ghostRot: number;
+  /** size for the next thing placed */
+  placeScale: number;
+  music: boolean;
   terrainTool: TerrainTool;
   surface: Surface;
   brush: Brush;
@@ -86,6 +89,9 @@ interface State {
   select: (id: string | null) => void;
   hover: (id: string | null) => void;
   rotateGhost: (d: number) => void;
+  setPlaceScale: (v: number) => void;
+  resizeSelected: (factor: number) => void;
+  clearWorld: () => void;
 
   commit: (fn: (w: World) => World) => void;
   begin: () => void;
@@ -128,6 +134,8 @@ export const useStore = create<State>()((set, get) => ({
   mode: "explore",
   placeKind: null,
   ghostRot: 0,
+  placeScale: 1,
+  music: false,
   terrainTool: "raise",
   surface: "grass",
   brush: "M",
@@ -269,6 +277,17 @@ export const useStore = create<State>()((set, get) => ({
   select: (id) => set({ selectedId: id }),
   hover: (id) => { if (get().hoverId !== id) set({ hoverId: id }); },
   rotateGhost: (d) => set((s) => ({ ghostRot: s.ghostRot + d })),
+  setPlaceScale: (v) => set({ placeScale: Math.min(SIZE[1], Math.max(SIZE[0], Math.round(v * 100) / 100)) }),
+  resizeSelected: (f) => {
+    const id = get().selectedId; if (!id) return;
+    get().commit((w) => ({ ...w, objects: w.objects.map((x) => (x.id === id ? { ...x, s: Math.min(SIZE[1], Math.max(SIZE[0], Math.round(x.s * f * 100) / 100)) } : x)) }));
+  },
+  clearWorld: () => {
+    const cur = get().current; if (!cur) return;
+    const t = generateTerrain(cur.biome, cur.size, cur.seed, true);
+    get().commit((w) => ({ ...w, objects: [], terrain: { ...w.terrain, heights: t.heights, surface: t.surface } }));
+    set({ selectedId: null });
+  },
 
   commit: (fn) => {
     const cur = get().current; if (!cur) return;
@@ -296,7 +315,7 @@ export const useStore = create<State>()((set, get) => ({
   placeAt: (kind, x, z) => {
     const cur = get().current; if (!cur) return;
     const item = ITEMS[kind];
-    const o: Placed = { id: uid(), kind, p: [x, item.lift ?? 0, z], r: get().ghostRot, s: 1, v: Math.floor(Math.random() * 1000) };
+    const o: Placed = { id: uid(), kind, p: [x, item.lift ?? 0, z], r: get().ghostRot, s: get().placeScale, v: Math.floor(Math.random() * 1000) };
     get().commit((w) => ({ ...w, objects: [...w.objects, o] }));
     set((s) => ({ justPlaced: { ...s.justPlaced, [o.id]: performance.now() } }));
     get().burst({ x, y: 0, z, kind: "place", r: item.r });
@@ -304,7 +323,9 @@ export const useStore = create<State>()((set, get) => ({
     const at: [number, number, number] = [x, 0, z];
     if (kind === "tree" || kind === "pine") get().discover("first-tree", "Your first tree", "Something is starting to grow here.", at);
     if (kind === "cottage" || kind === "cabin") get().discover("first-home", "A home of your own", "Someone could live happily here.", at);
-    if (["crystal", "lantern", "magictree", "stars", "portal"].includes(kind)) get().discover("first-magic", "A little magic", "Your world just got a spark brighter.", at);
+    if (["roundhut", "manor", "mushhouse", "treehouse"].includes(kind)) get().discover("first-home", "A home of your own", "Someone could live happily here.", at);
+    if (["man", "woman", "dog", "gnome"].includes(kind)) get().discover("first-friend", "Someone moved in", "Your world has its first little resident.", at);
+    if (["crystal", "lantern", "magictree", "stars", "portal", "fairylights", "fairy", "glitter", "hangingtree"].includes(kind)) get().discover("first-magic", "A little magic", "Your world just got a spark brighter.", at);
     if (cur.objects.length + 1 >= 60) get().discover("sixty", "A thriving world", "Sixty things live in your universe now.");
   },
   removeSelected: () => {
@@ -327,7 +348,16 @@ export const useStore = create<State>()((set, get) => ({
     const R = BRUSH_R[brush];
     const t: Terrain = cur.terrain;
     if (terrainTool === "paint") get().live((w) => ({ ...w, terrain: { ...t, surface: paint(t, x, z, R, surface) } }));
-    else get().live((w) => ({ ...w, terrain: { ...t, heights: sculpt(t, x, z, R, terrainTool, terrainTool === "smooth" ? 0.25 : 0.09) } }));
+    else if (terrainTool === "river") {
+      get().live((w) => ({ ...w, terrain: { ...t, heights: carveRiver(t, x, z, R * 0.8) } }));
+      get().discover("first-river", "A river runs through it", "Water fills whatever you dig below the shore.", [x, 0, z]);
+    } else if (terrainTool === "erase") {
+      const gone = cur.objects.filter((o) => Math.hypot(o.p[0] - x, o.p[2] - z) < R * 0.85 + ITEMS[o.kind].r * o.s * 0.4);
+      if (!gone.length) return;
+      const ids = new Set(gone.map((o) => o.id));
+      get().live((w) => ({ ...w, objects: w.objects.filter((o) => !ids.has(o.id)) }));
+      for (const o of gone.slice(0, 4)) get().burst({ x: o.p[0], y: 0, z: o.p[2], kind: "remove", r: ITEMS[o.kind].r * o.s });
+    } else get().live((w) => ({ ...w, terrain: { ...t, heights: sculpt(t, x, z, R, terrainTool as "raise" | "lower" | "smooth", terrainTool === "smooth" ? 0.25 : 0.09) } }));
   },
   setEnv: (p) => {
     get().commit((w) => ({ ...w, env: { ...w.env, ...p } }));

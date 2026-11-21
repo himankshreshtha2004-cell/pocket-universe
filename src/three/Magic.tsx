@@ -60,7 +60,7 @@ const grassMat = new THREE.ShaderMaterial({
     }`,
 });
 
-const NO_GRASS = new Set(["cottage", "cabin", "tower", "windmill", "tile", "path", "pond", "portal", "bridge", "patch", "hill"]);
+const NO_GRASS = new Set(["cottage", "cabin", "tower", "windmill", "tile", "path", "pond", "portal", "bridge", "patch", "hill", "roundhut", "manor", "mushhouse", "treehouse", "hangingtree"]);
 
 export function GrassField({ t, biome, seed, objects }: { t: Terrain; biome: Biome; seed: number; objects: Placed[] }) {
   const pal = biome.palette;

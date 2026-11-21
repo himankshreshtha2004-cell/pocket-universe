@@ -17,7 +17,7 @@ const ndc = new THREE.Vector2();
 /** all pointer interaction with the world: placing, selecting, dragging, sculpting and painting */
 export function Editor({ world }: { world: World }) {
   const { gl, camera } = useThree();
-  const mode = useStore((s) => s.mode), placeKind = useStore((s) => s.placeKind), ghostRot = useStore((s) => s.ghostRot);
+  const mode = useStore((s) => s.mode), placeKind = useStore((s) => s.placeKind), ghostRot = useStore((s) => s.ghostRot), placeScale = useStore((s) => s.placeScale);
   const brush = useStore((s) => s.brush), terrainTool = useStore((s) => s.terrainTool), cinematic = useStore((s) => s.cinematic);
   const ghost = useRef<THREE.Group>(null), cursor = useRef<THREE.Mesh>(null);
   const [ghostOk, setGhostOk] = useState(true);
@@ -45,6 +45,12 @@ export function Editor({ world }: { world: World }) {
       return null;
     };
     const ctl = () => controlsRef.current;
+    /** with the eraser, pointing straight at a thing (even a floating one) erases it */
+    const eraseTarget = (): [number, number] | null => {
+      const id = hitObject(), w = useStore.getState().current;
+      const o = id && w ? w.objects.find((x) => x.id === id) : null;
+      return o ? [o.p[0], o.p[2]] : null;
+    };
 
     const down = (e: PointerEvent) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -55,9 +61,10 @@ export function Editor({ world }: { world: World }) {
       setRay(e);
       S.x0 = e.clientX; S.y0 = e.clientY; S.t0 = performance.now();
       const pt = hitTerrain();
-      if (s.mode === "terrain" && pt) {
+      const eraseAt = s.mode === "terrain" && s.terrainTool === "erase" ? eraseTarget() : null;
+      if (s.mode === "terrain" && (pt || eraseAt)) {
         const c = ctl(); if (c) c.enabled = false;
-        s.begin(); S.mode = "stroke"; S.queued = [pt.x, pt.z];
+        s.begin(); S.mode = "stroke"; S.queued = eraseAt ?? [pt!.x, pt!.z];
         el.setPointerCapture(e.pointerId);
         return;
       }
@@ -77,7 +84,11 @@ export function Editor({ world }: { world: World }) {
       const S = st.current, s = useStore.getState();
       if (s.cinematic || !s.current) return;
       setRay(e);
-      if (S.mode === "stroke") { const p = hitTerrain(); if (p) S.queued = [p.x, p.z]; updateCursor(p); return; }
+      if (S.mode === "stroke") {
+        const p = hitTerrain(), ea = useStore.getState().terrainTool === "erase" ? eraseTarget() : null;
+        if (ea) S.queued = ea; else if (p) S.queued = [p.x, p.z];
+        updateCursor(p); return;
+      }
       if (S.mode === "drag") { const p = hitTerrain(); if (p) S.dragTo = [p.x + S.off[0], p.z + S.off[1]]; return; }
       if (S.mode === "click" && Math.hypot(e.clientX - S.x0, e.clientY - S.y0) > 6) S.mode = "none";
       if (e.buttons && S.mode === "none") return; // orbiting
@@ -153,11 +164,11 @@ export function Editor({ world }: { world: World }) {
 
   const biome = BIOMES[world.biome];
   const brushR = BRUSH_R[brush];
-  const toolColor = terrainTool === "raise" ? "#f6c6a6" : terrainTool === "lower" ? "#a9c9f5" : terrainTool === "smooth" ? "#fff7ea" : "#f2b2d6";
+  const toolColor = terrainTool === "raise" ? "#f6c6a6" : terrainTool === "lower" ? "#a9c9f5" : terrainTool === "smooth" ? "#fff7ea" : terrainTool === "river" ? "#6fd3d8" : terrainTool === "erase" ? "#f28f9b" : "#f2b2d6";
   return (
     <group visible={!cinematic}>
       {mode === "place" && placeKind && (
-        <group ref={ghost} visible={ghostVis} rotation={[0, ghostRot, 0]}>
+        <group ref={ghost} visible={ghostVis} rotation={[0, ghostRot, 0]} scale={placeScale}>
           <Model key={placeKind + ghostOk} kind={placeKind} biome={biome} v={7} ghost={ghostOk ? "ok" : "bad"} />
           <mesh geometry={G.ring} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]} scale={ITEMS[placeKind].r + 0.1} renderOrder={5}>
             <meshBasicMaterial color={ghostOk ? "#87dccf" : "#f28f9b"} transparent opacity={0.85} depthWrite={false} />
