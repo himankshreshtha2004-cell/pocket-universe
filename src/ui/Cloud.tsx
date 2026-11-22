@@ -64,7 +64,7 @@ export function CloudSheet() {
   return (
     <Modal open={open} onClose={close} title="Cloud save">
       <div className="cloud-sheet">
-        <p className="muted">One account keeps your worlds in <b>Pocket Universe</b> and your progress in <b>The Impossible Path</b> — on any device.</p>
+        <p className="muted">Sign in to keep your worlds in <b>Pocket Universe</b> on every device — phone, laptop or tablet.</p>
         {s.email ? (
           <>
             <div className="cloud-who"><Icon n="cloud" s={18} /><div><b>{s.email}</b><span className={"cloud-st " + s.status}>{s.status === "synced" ? (ago < 1 ? "Synced just now" : `Synced ${ago} min ago`) : s.status === "syncing" ? "Syncing…" : "Not synced"}</span></div></div>
