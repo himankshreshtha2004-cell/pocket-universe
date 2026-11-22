@@ -13,6 +13,10 @@ create table if not exists public.saves (
 
 alter table public.saves enable row level security;
 
+-- let signed-in players use the table through the Data API (needed if "Grant API access to new tables" was off)
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.saves to authenticated;
+
 drop policy if exists "read own saves"   on public.saves;
 drop policy if exists "add own saves"    on public.saves;
 drop policy if exists "change own saves" on public.saves;

@@ -70,3 +70,10 @@ so one account holds both). Without it, everything still saves in the browser as
 4. Optional: Authentication → Sign In / Providers → Email → turn off "Confirm email" so new players can sign in at once.
 Players sign in from **Cloud save** (title screen / Settings in The Impossible Path, the Cloud button on My Universes in
 Pocket Universe). The newest copy of each world wins; finished levels from every device are combined.
+
+### Mobile-number sign-in (optional)
+Players can also sign in with a one-time code sent by SMS. It needs an SMS provider (Twilio, Vonage, MessageBird or
+TextLocal — each text is billed by that provider):
+1. Supabase → Authentication → Sign In / Providers → Phone → turn on, choose the provider and paste its keys.
+2. In `cloud-config.js` set `phone: true` (and `country`, default "91", for numbers typed without a +code).
+A mobile account and an email account are separate accounts — each player should stick to one.

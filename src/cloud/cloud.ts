@@ -13,7 +13,9 @@ export type CloudStatus = "off" | "signed-out" | "syncing" | "synced" | "error";
 export interface CloudState { status: CloudStatus; email: string; lastSync: number; message: string }
 export interface CloudRow { key: string; data: any; updated_at: number; deleted: boolean }
 
-const cfg = (typeof window !== "undefined" ? (window as any).CLOUD_CONFIG : null) as { url?: string; anonKey?: string } | null;
+const cfg = (typeof window !== "undefined" ? (window as any).CLOUD_CONFIG : null) as { url?: string; anonKey?: string; phone?: boolean; country?: string } | null;
+/** mobile-number sign-in is shown only when cloud-config.js says phone: true (it needs an SMS provider in Supabase) */
+export const phoneEnabled = () => !!(cfg && cfg.phone);
 export const cloudConfigured = !!(cfg && cfg.url && cfg.anonKey && /^(https:\/\/|http:\/\/(127\.0\.0\.1|localhost)[:/])/.test(cfg.url));
 
 let sb: SupabaseClient | null = null;
@@ -61,14 +63,17 @@ function friendly(e: any): string {
   if (/already registered|already been registered/i.test(m)) return "That email already has an account — sign in instead.";
   if (/Password should be/i.test(m)) return "Use a password of at least 6 characters.";
   if (/Email not confirmed/i.test(m)) return "Confirm your email first (check your inbox), then sign in.";
-  if (/rate limit/i.test(m)) return "Too many tries — wait a minute and try again.";
+  if (/rate limit|only request this after|security purposes/i.test(m)) return "Too many tries — wait a minute and try again.";
+  if (/phone provider|Unsupported phone|sms provider|Error sending (confirmation|sms|otp)/i.test(m)) return "Mobile sign-in isn't switched on yet — it needs an SMS service in Supabase. Use email for now.";
+  if (/Token has expired|invalid.*otp|otp.*invalid|Token.*invalid/i.test(m)) return "That code is wrong or has expired. Check it, or send a new one.";
+  if (/Invalid phone|phone.*invalid|phone number format/i.test(m)) return "Enter a valid mobile number, e.g. 98765 43210 (or with +country code).";
   return m || "Something went wrong with the cloud.";
 }
 
 if (sb) {
   sb.auth.onAuthStateChange((event, session) => {
     const id = session?.user?.id || "";
-    const email = session?.user?.email || "";
+    const email = session?.user?.email || (session?.user?.phone ? "+" + String(session.user.phone).replace(/^\+/, "") : "");
     if (id && id !== userId) { userId = id; set({ email, status: "syncing" }); window.setTimeout(runSync, 0); }
     else if (!id && userId) { userId = ""; set({ email: "", status: "signed-out", lastSync: 0 }); }
     else if (!id && event === "INITIAL_SESSION") set({ status: "signed-out" });
@@ -85,6 +90,28 @@ export async function signUp(email: string, password: string): Promise<string> {
 export async function signIn(email: string, password: string): Promise<string> {
   if (!sb) return "Cloud save isn't set up on this site.";
   const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
+  return error ? friendly(error) : "";
+}
+/** "98765 43210" → "+919876543210"; numbers that already start with + keep their country code */
+export function normalizePhone(raw: string): string {
+  const t = raw.trim().replace(/[\s\-().]/g, "");
+  if (t.startsWith("+")) return "+" + t.slice(1).replace(/\D/g, "");
+  const d = t.replace(/\D/g, "").replace(/^0+/, "");
+  const cc = String(cfg?.country || "91").replace(/\D/g, "");
+  return d.length === 10 ? "+" + cc + d : "+" + d;
+}
+/** step 1 of mobile sign-in: text a 6-digit code (creates the account the first time) */
+export async function sendPhoneCode(phone: string): Promise<string> {
+  if (!sb) return "Cloud save isn't set up on this site.";
+  const p = normalizePhone(phone);
+  if (p.replace(/\D/g, "").length < 10) return "Enter a valid mobile number, e.g. 98765 43210.";
+  const { error } = await sb.auth.signInWithOtp({ phone: p });
+  return error ? friendly(error) : "";
+}
+/** step 2: check the code from the text message */
+export async function verifyPhoneCode(phone: string, code: string): Promise<string> {
+  if (!sb) return "Cloud save isn't set up on this site.";
+  const { error } = await sb.auth.verifyOtp({ phone: normalizePhone(phone), token: code.replace(/\D/g, ""), type: "sms" });
   return error ? friendly(error) : "";
 }
 export async function signOut() { await flush().catch(() => {}); await sb?.auth.signOut(); }
