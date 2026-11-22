@@ -5,6 +5,7 @@ import { Stage } from "./three/Stage";
 import { Builder } from "./ui/Builder";
 import { Collection } from "./ui/Collection";
 import { Toasts } from "./ui/common";
+import { CloudSheet } from "./ui/Cloud";
 import { Create } from "./ui/Create";
 import { Welcome } from "./ui/Welcome";
 
@@ -32,6 +33,7 @@ export function App() {
       </AnimatePresence>
       <div className={"veil" + (fading ? " on" : "")} aria-hidden="true" />
       <Toasts />
+      <CloudSheet />
     </div>
   );
 }

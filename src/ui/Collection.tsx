@@ -1,3 +1,4 @@
+import { CloudButton } from "./Cloud";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { BIOMES } from "../data/biomes";
@@ -66,6 +67,7 @@ export function Collection() {
           <h1>My Universes</h1>
         </div>
         <div className="col-actions">
+          <CloudButton />
           <button className="btn glassy" onClick={pickAndImport}><Icon n="upload" s={16} /> Import</button>
           {worlds.length > 0 && <button className="btn glassy" onClick={() => exportWorlds(worlds, "pocket-universe-collection.json")}><Icon n="download" s={16} /> Export all</button>}
           <button className="btn glassy" disabled={busy} onClick={async () => { setBusy(true); await surprise(); setBusy(false); }}><Icon n="dice" s={16} /> Surprise me</button>
@@ -96,7 +98,7 @@ export function Collection() {
           <div className="row end gap"><button type="button" className="btn ghost" onClick={() => setRenaming(null)}>Cancel</button><button className="btn primary" disabled={!name.trim()}>Save name</button></div>
         </form>
       </Modal>
-      <Confirm open={!!deleting} title={`Delete ${deleting?.name ?? ""}?`} text="This world and everything in it will be gone from this browser. This can't be undone." yes="Delete world"
+      <Confirm open={!!deleting} title={`Delete ${deleting?.name ?? ""}?`} text="This world and everything in it will be deleted (also from your cloud save, if you use one). This can't be undone." yes="Delete world"
         onNo={() => setDeleting(null)} onYes={async () => { if (deleting) { await del(deleting.id); toast("Deleted", `${deleting.name} drifted away.`); } setDeleting(null); }} />
     </div>
   );

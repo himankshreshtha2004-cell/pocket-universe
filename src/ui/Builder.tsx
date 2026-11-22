@@ -1,3 +1,5 @@
+import { CloudButton } from "./Cloud";
+import { cloudConfigured } from "../cloud/cloud";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { BIOMES, SKY_TINTS, TIME_LABEL, TIMES, WEATHER_LABEL } from "../data/biomes";
@@ -257,6 +259,7 @@ function Settings() {
               <button className="btn glassy small" onClick={pickAndImport}><Icon n="upload" s={15} /> Import worlds</button>
             </div>
             <p className="muted small">Worlds are saved automatically in this browser. Export to keep a copy or move a world to another device.</p>
+            {cloudConfigured && <div className="row gap-s wrap"><CloudButton small /><span className="muted small">Sign in to keep your worlds on every device.</span></div>}
             <h4>Comfort</h4>
             <label className="toggle"><input type="checkbox" checked={reduced} onChange={(e) => setPrefs({ reducedMotion: e.target.checked })} /><span />Reduce motion</label>
             <label className="toggle"><input type="checkbox" checked={quality === "high"} onChange={(e) => setPrefs({ quality: e.target.checked ? "high" : "low" })} /><span />Best graphics (glow, depth, soft shadows)</label>
@@ -270,7 +273,7 @@ function Settings() {
           </div>
         </div>
       </Modal>
-      <Confirm open={confirm} title={`Delete ${world.name}?`} text="This world and everything in it will be removed from this browser. This can't be undone." yes="Delete world"
+      <Confirm open={confirm} title={`Delete ${world.name}?`} text="This world and everything in it will be deleted (also from your cloud save, if you use one). This can't be undone." yes="Delete world"
         onNo={() => setConfirm(false)} onYes={async () => { setConfirm(false); close(); const id = world.id; useStore.setState({ current: null }); await del(id); go("collection"); }} />
     </>
   );

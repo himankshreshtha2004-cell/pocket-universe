@@ -1,6 +1,9 @@
 // Local persistence: IndexedDB (one record per world), with a localStorage fallback
 // for browsers or modes where IndexedDB is unavailable.
 import { SCHEMA_VERSION, type World } from "./types";
+import { push } from "../cloud/cloud";
+
+export const CLOUD_APP = "pocket-universe";
 
 const DB = "pocket-universe", STORE = "worlds", LS_KEY = "pocket-universe.worlds";
 let dbp: Promise<IDBDatabase | null> | null = null;
@@ -34,7 +37,9 @@ export const storage = {
       r.onerror = () => rej(r.error);
     });
   },
-  async put(w: World): Promise<void> {
+  /** saves a world in this browser and (when signed in) queues a copy for the cloud */
+  async put(w: World, toCloud = true): Promise<void> {
+    if (toCloud) push(CLOUD_APP, w.id, w, w.updatedAt);
     const db = await open();
     if (!db) { const l = lsAll().filter((x) => x.id !== w.id); l.push(w); lsWrite(l); return; }
     return new Promise((res, rej) => {
@@ -44,7 +49,8 @@ export const storage = {
       tx.onerror = () => rej(tx.error);
     });
   },
-  async remove(id: string): Promise<void> {
+  async remove(id: string, toCloud = true): Promise<void> {
+    if (toCloud) push(CLOUD_APP, id, null, Date.now(), true); // a "deleted" marker so other devices remove it too
     const db = await open();
     if (!db) { lsWrite(lsAll().filter((x) => x.id !== id)); return; }
     return new Promise((res, rej) => {

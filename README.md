@@ -58,3 +58,15 @@ variant), created/updated timestamps, schema version and a thumbnail.
 
 Ctrl/⌘ Z undo · Ctrl/⌘ Shift Z or Ctrl Y redo · Delete remove · R rotate (Shift+R other way) ·
 Ctrl/⌘ D duplicate · − / + smaller / bigger · M music · Ctrl/⌘ S save now · C cinematic view · Esc stop placing / deselect / leave cinematic
+
+## Cloud save
+Progress can follow the player to any device through one free Supabase project (shared with the other game,
+so one account holds both). Without it, everything still saves in the browser as before.
+1. Create a free project at https://supabase.com.
+2. SQL Editor → New query → paste `cloud-setup.sql` → Run.
+3. Project Settings → API: put the Project URL and the anon / publishable key in `public/cloud-config.js`
+   (or in `cloud-config.js` next to `index.html` in a built copy). The anon key is safe to publish:
+   row-level security lets each player read and write only their own saves.
+4. Optional: Authentication → Sign In / Providers → Email → turn off "Confirm email" so new players can sign in at once.
+Players sign in from **Cloud save** (title screen / Settings in The Impossible Path, the Cloud button on My Universes in
+Pocket Universe). The newest copy of each world wins; finished levels from every device are combined.

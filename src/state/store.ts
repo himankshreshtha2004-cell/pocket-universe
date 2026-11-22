@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { BIOMES, BIOME_ORDER, randomName, TIMES } from "../data/biomes";
 import { ITEMS, SIZE, type TerrainTool } from "../data/catalog";
-import { isWorld, prefs, storage } from "../data/db";
+import { CLOUD_APP, isWorld, migrate, prefs, storage } from "../data/db";
+import { onCloudSession, pull, push } from "../cloud/cloud";
 import { newSeed, uid } from "../data/rng";
 import { carveRiver, generateStarters, generateTerrain, paint, sculpt } from "../data/terrain";
 import { SCHEMA_VERSION, type BiomeId, type Draft, type Env, type ObjectKind, type Placed, type Surface, type Terrain, type World } from "../data/types";
@@ -181,7 +182,7 @@ export const useStore = create<State>()((set, get) => ({
             for (const w of (data.worlds ?? []) as World[]) {
               if (!isWorld(w)) continue;
               const have = byId.get(w.id);
-              if ((!have && !seeded) || (have && have.updatedAt === w.updatedAt)) { await storage.put(w); byId.set(w.id, w); }
+              if ((!have && !seeded) || (have && have.updatedAt === w.updatedAt)) { await storage.put(w, false); byId.set(w.id, w); } // the cloud sync uploads only what's newer
             }
             ws = Array.from(byId.values());
             prefs.set("showcaseVer", SHOWCASE_VER);
@@ -421,4 +422,41 @@ useStore.subscribe((s, prev) => {
   if (s.save !== "dirty" && s.save !== "saving") useStore.setState({ save: "dirty" });
   window.clearTimeout(saveTimer);
   saveTimer = window.setTimeout(() => { if (!useStore.getState().pending) useStore.getState().saveNow(); else saveTimer = window.setTimeout(() => useStore.getState().saveNow(), 900); }, 700);
+});
+
+// Cloud save: when signed in, combine this browser's worlds with the cloud copy.
+// For each world the most recently edited copy wins; a world deleted on one device is deleted everywhere
+// (unless it was edited again after that).
+export function mergeWorlds(local: World[], rows: { key: string; data: any; updated_at: number; deleted: boolean }[]) {
+  const byId = new Map(local.map((w) => [w.id, w]));
+  const toLocal: World[] = [], removeLocal: string[] = [], toCloud: World[] = [];
+  const remote = new Map(rows.map((r) => [r.key, r]));
+  for (const r of rows) {
+    const l = byId.get(r.key);
+    if (r.deleted) { if (l && l.updatedAt <= r.updated_at) { removeLocal.push(r.key); byId.delete(r.key); } continue; }
+    if (!isWorld(r.data)) continue;
+    if (!l || r.updated_at > l.updatedAt) { const w = migrate({ ...r.data, id: r.key, updatedAt: r.updated_at }); toLocal.push(w); byId.set(w.id, w); }
+  }
+  for (const l of local) {
+    const r = remote.get(l.id);
+    if (!byId.has(l.id)) continue;
+    if (!r || l.updatedAt > r.updated_at) toCloud.push(l);
+  }
+  return { worlds: [...byId.values()], toLocal, removeLocal, toCloud };
+}
+
+onCloudSession(async () => {
+  for (let i = 0; i < 100 && !useStore.getState().loaded; i++) await new Promise((r) => setTimeout(r, 100));
+  const rows = await pull(CLOUD_APP);
+  const local = await storage.all();
+  const m = mergeWorlds(local, rows);
+  for (const w of m.toLocal) await storage.put(w, false);
+  for (const id of m.removeLocal) await storage.remove(id, false);
+  for (const w of m.toCloud) push(CLOUD_APP, w.id, w, w.updatedAt);
+  if (m.toLocal.length || m.removeLocal.length) {
+    const cur = useStore.getState().current;
+    useStore.setState({ worlds: sortWorlds(m.worlds) });
+    if (m.toLocal.length + m.removeLocal.length) useStore.getState().toast("Synced from the cloud", `${m.toLocal.length ? m.toLocal.length + " world" + (m.toLocal.length > 1 ? "s" : "") + " updated" : ""}${m.toLocal.length && m.removeLocal.length ? " · " : ""}${m.removeLocal.length ? m.removeLocal.length + " removed" : ""}.`);
+    void cur;
+  }
 });
