@@ -11,7 +11,7 @@ export type CloudStatus = "off" | "signed-out" | "syncing" | "synced" | "error";
 export interface CloudState { status: CloudStatus; email: string; lastSync: number; message: string }
 export interface CloudRow { key: string; data: any; updated_at: number; deleted: boolean }
 
-const cfg = (typeof window !== "undefined" ? (window as any).CLOUD_CONFIG : null) as { url?: string; anonKey?: string; phone?: boolean; country?: string } | null;
+const cfg = (typeof window !== "undefined" ? (window as any).CLOUD_CONFIG : null) as { url?: string; anonKey?: string; phone?: boolean; country?: string; afterConfirm?: string } | null;
 /** mobile-number sign-in is shown only when cloud-config.js says phone: true (it needs an SMS provider in Supabase) */
 export const phoneEnabled = () => !!(cfg && cfg.phone);
 export const cloudConfigured = !!(cfg && cfg.url && cfg.anonKey && /^(https:\/\/|http:\/\/(127\.0\.0\.1|localhost)[:/])/.test(cfg.url));
@@ -81,7 +81,7 @@ if (sb) {
 export async function signUp(email: string, password: string): Promise<string> {
   if (!sb) return "Cloud save isn't set up on this site.";
   // the confirmation email brings the player back to this game (its address must be in Supabase → Auth → URL Configuration)
-  const back = typeof location !== "undefined" ? location.origin + location.pathname : undefined;
+  const back = cfg?.afterConfirm || (typeof location !== "undefined" ? location.origin + location.pathname : undefined);
   const { data, error } = await sb.auth.signUp({ email: email.trim(), password, options: back ? { emailRedirectTo: back } : undefined });
   if (error) return friendly(error);
   if (!data.session) return "Account created. Check your email and click the confirmation link, then sign in here.";
